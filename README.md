@@ -2,7 +2,7 @@
 
 A BepInEx patcher that fixes small IMGUI UI on HiDPI screen.;
 
-Demo image of non-loss scaling.
+Demo image of smooth scaling of BepInEx.ConfigurationManager UI to 2 time of original(right).
 
 ![Zoom Comparison](./docs/zoom_comparison.png)
 

@@ -76,8 +76,8 @@ public static class Hooks
                 "AutoDpiScaleMin",
                 0.8f,
                 new ConfigDescription(
-                    "Minimum value for auto-calculated DPI scale, defaults to 1.0\n"
-                        + "so it wouldn't scale down further if screen size goes down 1920x1080.",
+                    "Minimum value for auto-calculated DPI scale, defaults to 0.8\n"
+                        + "so it wouldn't scale down further if screen size goes down 1920x1080 * 0.8.",
                     scaleRange
                 )
             )
