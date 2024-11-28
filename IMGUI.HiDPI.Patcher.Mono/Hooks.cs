@@ -126,7 +126,7 @@ public static class Hooks
             .Bind<string>(
                 "ScreenOverride",
                 "ExtraOverrideNsRegex",
-                "(^ConfigurationManager(\\..+)?|^ClothingStateMenu(\\..+)?)",
+                "(^ConfigurationManager(\\..+)?|^RuntimeUnityEditor(\\..+)?|^ClothingStateMenu(\\..+)?)",
                 "Extra namespace pattern for Screen overriding, specify .NET regular expressions here."
             )
             .Value;

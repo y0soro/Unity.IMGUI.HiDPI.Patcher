@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Threading;
 using BepInEx.Logging;
 using BepInEx.Preloader.Core.Patching;
 using HarmonyLib;
