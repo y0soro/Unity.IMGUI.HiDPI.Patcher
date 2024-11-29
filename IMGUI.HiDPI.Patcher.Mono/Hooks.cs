@@ -42,7 +42,12 @@ public static class Hooks
     private static bool forceDisableOverride;
 
     [ThreadStatic]
-    private static bool isOnGUI;
+    private static int onGuiDepth;
+
+    private static bool IsOnGUI
+    {
+        get => onGuiDepth > 0;
+    }
 
     private static float ClampScale(float f)
     {
@@ -211,7 +216,7 @@ public static class Hooks
         if (forceDisableOverride)
             return false;
 
-        if (isOnGUI)
+        if (IsOnGUI)
             return true;
 
         if (!AutoOverrideNs && overrideNsPat.Count == 0)
@@ -278,7 +283,7 @@ public static class Hooks
     {
         internal static void Prefix(ref Matrix4x4 __state)
         {
-            isOnGUI = true;
+            onGuiDepth = 1;
 
             __state = GUI.matrix;
 
@@ -291,8 +296,7 @@ public static class Hooks
         internal static void Postfix(Matrix4x4 __state)
         {
             GUI.matrix = __state;
-
-            isOnGUI = false;
+            onGuiDepth = 0;
         }
     }
 
@@ -321,9 +325,55 @@ public static class Hooks
 
         Log.LogInfo($"Patch OnGUI of {ty.FullName}");
 
-        var onGUIPrefix = new HarmonyMethod(AccessTools.Method(typeof(HookOnGUI), "Prefix"));
-        var onGUIPostfix = new HarmonyMethod(AccessTools.Method(typeof(HookOnGUI), "Postfix"));
-        harmony.Patch(onGUI, onGUIPrefix, onGUIPostfix);
+        var onGUIPrefix = new HarmonyMethod(
+            AccessTools.Method(typeof(HookOnGUI), nameof(HookOnGUI.Prefix))
+        );
+        var onGUIPostfix = new HarmonyMethod(
+            AccessTools.Method(typeof(HookOnGUI), nameof(HookOnGUI.Postfix))
+        );
+        harmony.Patch(
+            onGUI,
+            prefix: onGUIPrefix,
+            postfix: onGUIPostfix,
+            finalizer: onGUIPostfix
+        );
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(GUI), nameof(GUI.DoWindow))]
+    [HarmonyPatch(typeof(GUI), nameof(GUI.DoModalWindow))]
+    // Seems GUILayout.DoWindow on HoneyCome does not reach GUI.DoWindow,
+    // so also hook this.
+    [HarmonyPatch(typeof(GUILayout), nameof(GUILayout.DoWindow))]
+    private static void DoWindow(ref GUI.WindowFunction __2)
+    {
+        WrapWindowFunc(ref __2);
+    }
+
+    private static void WrapWindowFunc(ref GUI.WindowFunction func)
+    {
+        if (!IsOnGUI)
+            return;
+
+        GUI.WindowFunction orig = func;
+        Log.LogInfo("Wrap window function");
+
+#pragma warning disable IDE0004 // we need explict conversion for IL2CPP
+        func = (GUI.WindowFunction)(
+#pragma warning restore IDE0004
+            delegate(int id)
+            {
+                onGuiDepth++;
+                try
+                {
+                    orig.Invoke(id);
+                }
+                finally
+                {
+                    onGuiDepth--;
+                }
+            }
+        );
     }
 
     // We want GUI components to calculate positions in unscaled coordinate space,
