@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 set -e
 
-DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 
 dotnet build --configuration Release
+
+version=$(sed -n 's/.*<Version>\(.*\)<.*/\1/p' Directory.Build.props | tr -d '\n')
 
 for i in IMGUI*/; do
     name="${i%/}"
@@ -11,8 +13,8 @@ for i in IMGUI*/; do
     tmp=$(mktemp -d)
     cd $tmp
 
-    mkdir -p BepInEx/patchers
-    cp "$DIR/artifacts/bin/$name/release/"*.dll ./BepInEx/patchers
+    install -TD "${DIR}/docs/IMGUI.HiDPI.Patcher.cfg" "./BepInEx/config/${name}.cfg"
+    install -D "${DIR}/artifacts/bin/${name}/release/"*.dll -t ./BepInEx/patchers
 
-    tar -a -cf "$DIR/artifacts/$name.zip" ./
+    tar -a -cf "$DIR/artifacts/${name}-v${version}.zip" ./
 done
