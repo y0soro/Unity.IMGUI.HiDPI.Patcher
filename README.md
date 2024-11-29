@@ -19,7 +19,7 @@ GUI.matrix *= Matrix4x4.Scale(new Vector3(scale, scale, 1.0f));
 
 in `OnGUI()` callback, all following UI draws would have UI scaled by `2.0` automatically.
 
-And events like mouse position would still works. It's that simple.
+And GUI events like current mouse position would still works. It's that simple.
 
 However if UI component draws elements with absolute size referencing screen rectangle,
 those elements would probably overflow out of the screen.
@@ -37,7 +37,7 @@ Here are the basic steps to implement HiDPI scaling for IMGUI.
 
 2. Scale `GUI.matrix` by `scale` using transformation matrix in the head of `MonoBehaviour.OnGUI` callback, all UI elements draw after this would be scaled up transparently from top-left to bottom-right.
 
-3. Instead of referencing screen border with `Screen.width` and `Screen.height`, reference scale downed version of them, i.e. `Screen.width/scale` and `Screen.height/scale`. And with UI scaling in step 2, the final rendering result would have your UI element referencing to actual screen border just like there was no scaling.
+3. Instead of referencing screen border with `Screen.width` and `Screen.height`, reference scale downed version of them, i.e. `Screen.width/scale` and `Screen.height/scale`. This also applies to other absolute position like Input mouse position that referenced. And with UI scaling in step 2, the final rendering result would have your UI element referencing to actual screen border just like there was no scaling.
 
 4. If you use coordinate conversion utilities like `GUIUtility.ScreenToGUIPoint` and `GUIUtility.GUIToScreenPoint`, set `GUI.matrix` to `Matrix4x4.identity` otherwise you would get scaled results. Just like other drawing operations, they are transparent to final scaling, so do these coordinate should remain unscaled. Note also make sure to save and revert back to the previous "scaling" `GUI.matrix`.
 

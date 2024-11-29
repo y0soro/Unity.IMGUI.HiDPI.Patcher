@@ -423,4 +423,16 @@ public static class Hooks
             __result = (int)Mathf.Round(__result / Scale);
         }
     }
+
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(Input), nameof(Input.mousePosition), MethodType.Getter)]
+    private static void LegacyMousePosition(ref Vector3 __result)
+    {
+        if (IsOnGUI)
+        {
+            var scale = Scale;
+            __result.x /= scale;
+            __result.y /= scale;
+        }
+    }
 }
