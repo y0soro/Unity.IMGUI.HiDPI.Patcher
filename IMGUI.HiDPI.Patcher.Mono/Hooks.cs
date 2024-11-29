@@ -300,12 +300,32 @@ public static class Hooks
         }
     }
 
+    private static MethodBase FindMethod(Type ty, string name)
+    {
+        do
+        {
+            var method = ty.GetMethod(
+                name,
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+                null,
+                [],
+                []
+            );
+            if (method != null)
+                return method;
+
+            ty = ty.BaseType;
+        } while (ty != null);
+
+        return null;
+    }
+
     public static void PatchComponent(Type ty)
     {
         if (!ty.IsSubclassOf(typeof(MonoBehaviour)))
             return;
 
-        var onGUI = AccessTools.Method(ty, "OnGUI", []);
+        var onGUI = FindMethod(ty, "OnGUI");
         if (onGUI == null)
             return;
 
@@ -331,12 +351,7 @@ public static class Hooks
         var onGUIPostfix = new HarmonyMethod(
             AccessTools.Method(typeof(HookOnGUI), nameof(HookOnGUI.Postfix))
         );
-        harmony.Patch(
-            onGUI,
-            prefix: onGUIPrefix,
-            postfix: onGUIPostfix,
-            finalizer: onGUIPostfix
-        );
+        harmony.Patch(onGUI, prefix: onGUIPrefix, postfix: onGUIPostfix, finalizer: onGUIPostfix);
     }
 
     [HarmonyPrefix]
