@@ -374,7 +374,6 @@ public static class Hooks
             return;
 
         GUI.WindowFunction orig = func;
-        Log.LogInfo("Wrap window function");
 
 #pragma warning disable IDE0004 // we need explict conversion for IL2CPP
         func = (GUI.WindowFunction)(
