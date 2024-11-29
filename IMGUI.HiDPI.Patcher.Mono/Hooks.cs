@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using BepInEx.Configuration;
 using BepInEx.Logging;
@@ -82,7 +83,7 @@ public static class Hooks
                 0.8f,
                 new ConfigDescription(
                     "Minimum value for auto-calculated DPI scale, defaults to 0.8\n"
-                        + "so it wouldn't scale down further if screen size goes down 1920x1080 * 0.8.",
+                        + "so it wouldn't scale down further if screen size goes down 1536x864",
                     scaleRange
                 )
             )
@@ -104,7 +105,7 @@ public static class Hooks
                 "FixedDpiScale",
                 1.5f,
                 new ConfigDescription(
-                    "Fixed DPI scale, set AutoDpiScale=false to activate, \n"
+                    "Fixed DPI scale, set AutoDpiScale=false to activate,\n"
                         + "the size of IMGUI elements wouldn't be changed on screen size change.",
                     scaleRange
                 )
@@ -128,10 +129,10 @@ public static class Hooks
             .Value;
 
         var ExtraIncludeNs = Config
-            .Bind<string>(
+            .Bind(
                 "ScreenOverride",
                 "ExtraOverrideNsRegex",
-                "(^ConfigurationManager(\\..+)?|^RuntimeUnityEditor(\\..+)?|^ClothingStateMenu(\\..+)?)",
+                "(^ConfigurationManager(\\..+)?|^ClothingStateMenu(\\..+)?)",
                 "Extra namespace pattern for Screen overriding, specify .NET regular expressions here."
             )
             .Value;
@@ -146,7 +147,7 @@ public static class Hooks
         }
 
         var ExcludeNs = Config
-            .Bind<string>(
+            .Bind(
                 "ScreenOverride",
                 "ExcludeNsRegex",
                 "^UnityEngine(\\..+)?",
@@ -164,7 +165,7 @@ public static class Hooks
         }
 
         var OptOutNs = Config
-            .Bind<string>(
+            .Bind(
                 "Opt-out",
                 "OptOutNsRegex",
                 "",
@@ -259,20 +260,22 @@ public static class Hooks
                 {
                     if (excludeNsPat != null && excludeNsPat.IsMatch(ns))
                     {
-                        Log.LogInfo($"Exclude namespace {ns} from Screen size overriding");
+                        Log.LogInfo(
+                            $"Exclude namespace {ns} from non-OnGUI Screen size overriding"
+                        );
                         overrideCache.Add(ns, false);
                         continue;
                     }
                     else
                     {
-                        Log.LogInfo($"Overriding Screen size for namespace {ns}");
+                        Log.LogInfo($"Force overriding Screen size for namespace {ns}");
                         overrideCache.Add(ns, true);
                         return true;
                     }
                 }
             }
 
-            Log.LogInfo($"Exclude namespace {ns} from Screen size overriding");
+            Log.LogInfo($"Exclude namespace {ns} from non-OnGUI Screen size overriding");
             overrideCache.Add(ns, false);
         }
 

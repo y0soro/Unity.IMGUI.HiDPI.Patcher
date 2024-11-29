@@ -56,7 +56,7 @@ public static class Patcher
     {
         [HarmonyPrefix]
         [HarmonyPatch(typeof(Chainloader), nameof(Chainloader.Start))]
-        private static void Initialize()
+        private static void Start()
         {
             Hooks.InitAndApply(Log, Config, harmony, typeof(ComponentHook));
         }
