@@ -32,7 +32,14 @@ public class Patcher : BasePatcher
         )]
         private static void RegisterType(Type __0)
         {
-            Hooks.PatchComponent(__0);
+            try
+            {
+                Hooks.PatchComponent(__0);
+            }
+            catch (Exception e)
+            {
+                Log.LogError(e);
+            }
         }
     }
 }

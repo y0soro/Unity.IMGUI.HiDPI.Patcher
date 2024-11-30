@@ -68,7 +68,14 @@ public static class Patcher
         [HarmonyPatch(typeof(GameObject), nameof(GameObject.AddComponent), [typeof(Type)])]
         private static void AddComponent(Type __0)
         {
-            Hooks.PatchComponent(__0);
+            try
+            {
+                Hooks.PatchComponent(__0);
+            }
+            catch (Exception e)
+            {
+                Log.LogError(e);
+            }
         }
     }
 }

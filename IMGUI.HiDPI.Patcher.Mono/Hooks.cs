@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Threading;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
@@ -83,7 +84,7 @@ public static class Hooks
                 0.8f,
                 new ConfigDescription(
                     "Minimum value for auto-calculated DPI scale, defaults to 0.8\n"
-                        + "so it wouldn't scale down further if screen size goes down 1536x864",
+                        + "so it wouldn't scale down further if screen size goes down 1536x864 .",
                     scaleRange
                 )
             )
@@ -124,7 +125,7 @@ public static class Hooks
                     + "However some plugin uses Screen.width and Screen.height out side of OnGUI, causing window border to overflow.\n"
                     + "To work around that we collect namespaces of registered MonoBehavior.OnGUI in plugins,\n"
                     + "and when other method in the same namespace or child namespace calls Screen.width and/or Screen.height,\n"
-                    + "we check call stack and scaled down screen size regardless."
+                    + "we check call stack and scale down screen size regardless."
             )
             .Value;
 
@@ -132,7 +133,7 @@ public static class Hooks
             .Bind(
                 "ScreenOverride",
                 "ExtraOverrideNsRegex",
-                "(^ConfigurationManager(\\..+)?|^ClothingStateMenu(\\..+)?)",
+                "^ConfigurationManager(\\..+)?",
                 "Extra namespace pattern for Screen overriding, specify .NET regular expressions here."
             )
             .Value;
@@ -254,37 +255,55 @@ public static class Hooks
                     continue;
             }
 
+            void addOverrideCache(bool state)
+            {
+                // handle racing
+                try
+                {
+                    lock (overrideCache)
+                        overrideCache.Add(ns, state);
+                }
+                catch (Exception)
+                {
+                    return;
+                }
+
+                if (state)
+                {
+                    Log.LogInfo($"Force overriding Screen size for namespace {ns}");
+                }
+                else
+                {
+                    Log.LogInfo($"Exclude namespace {ns} from non-OnGUI Screen size overriding");
+                }
+            }
+
             foreach (var pat in overrideNsPat)
             {
                 if (pat.IsMatch(ns))
                 {
                     if (excludeNsPat != null && excludeNsPat.IsMatch(ns))
                     {
-                        Log.LogInfo(
-                            $"Exclude namespace {ns} from non-OnGUI Screen size overriding"
-                        );
-                        overrideCache.Add(ns, false);
+                        addOverrideCache(false);
                         continue;
                     }
                     else
                     {
-                        Log.LogInfo($"Force overriding Screen size for namespace {ns}");
-                        overrideCache.Add(ns, true);
+                        addOverrideCache(true);
                         return true;
                     }
                 }
             }
 
-            Log.LogInfo($"Exclude namespace {ns} from non-OnGUI Screen size overriding");
-            overrideCache.Add(ns, false);
+            addOverrideCache(false);
         }
 
         return false;
     }
 
-    private static class HookOnGUI
+    private static class HookMonoBehavior
     {
-        internal static void Prefix(ref Matrix4x4 __state)
+        internal static void OnGUIPrefix(ref Matrix4x4 __state)
         {
             onGuiDepth = 1;
 
@@ -296,9 +315,19 @@ public static class Hooks
             GUI.matrix *= Matrix4x4.Scale(new Vector3(scale, scale, 1.0f));
         }
 
-        internal static void Postfix(Matrix4x4 __state)
+        internal static void OnGUIPostfix(Matrix4x4 __state)
         {
             GUI.matrix = __state;
+            onGuiDepth = 0;
+        }
+
+        internal static void UpdatePrefix()
+        {
+            onGuiDepth = 1;
+        }
+
+        internal static void UpdatePostfix()
+        {
             onGuiDepth = 0;
         }
     }
@@ -340,21 +369,49 @@ public static class Hooks
             if (optOutNsPat != null && optOutNsPat.IsMatch(ty.Namespace))
                 return;
 
-            if (AutoOverrideNs && ty.Namespace != null)
+            if (AutoOverrideNs)
             {
                 overrideNsPat.Add(new Regex($"^{ty.Namespace}(\\..+)?"));
             }
         }
 
+        static void PatchMethod(MethodBase method, string prefixName, string postFixName)
+        {
+            var prefix = new HarmonyMethod(
+                AccessTools.Method(typeof(HookMonoBehavior), prefixName)
+            );
+            var postfix = new HarmonyMethod(
+                AccessTools.Method(typeof(HookMonoBehavior), postFixName)
+            );
+            harmony.Patch(method, prefix: prefix, postfix: postfix, finalizer: postfix);
+        }
+
         Log.LogInfo($"Patch OnGUI of {ty.FullName}");
 
-        var onGUIPrefix = new HarmonyMethod(
-            AccessTools.Method(typeof(HookOnGUI), nameof(HookOnGUI.Prefix))
+        PatchMethod(
+            onGUI,
+            nameof(HookMonoBehavior.OnGUIPrefix),
+            nameof(HookMonoBehavior.OnGUIPostfix)
         );
-        var onGUIPostfix = new HarmonyMethod(
-            AccessTools.Method(typeof(HookOnGUI), nameof(HookOnGUI.Postfix))
-        );
-        harmony.Patch(onGUI, prefix: onGUIPrefix, postfix: onGUIPostfix, finalizer: onGUIPostfix);
+
+        // There are plugins retrieve Screen size in *Update callbacks.
+        // And check stack trace in Screen hooks for each frame could be expensive, so also hook these.
+        List<string> methods = ["Update", "FixedUpdate", "LateUpdate"];
+
+        foreach (var methodName in methods)
+        {
+            var method = FindMethod(ty, methodName);
+            if (method == null)
+                continue;
+
+            Log.LogDebug($"Patch {methodName} of {ty.FullName}");
+
+            PatchMethod(
+                method,
+                nameof(HookMonoBehavior.UpdatePrefix),
+                nameof(HookMonoBehavior.UpdatePostfix)
+            );
+        }
     }
 
     [HarmonyPrefix]
