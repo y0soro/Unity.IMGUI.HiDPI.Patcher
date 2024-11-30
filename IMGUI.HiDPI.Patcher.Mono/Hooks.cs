@@ -282,7 +282,10 @@ public static class Hooks
             {
                 if (pat.IsMatch(ns))
                 {
-                    if (excludeNsPat != null && excludeNsPat.IsMatch(ns))
+                    if (
+                        excludeNsPat != null && excludeNsPat.IsMatch(ns)
+                        || optOutNsPat != null && optOutNsPat.IsMatch(ns)
+                    )
                     {
                         addOverrideCache(false);
                         continue;
