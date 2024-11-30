@@ -287,8 +287,8 @@ public static class Hooks
                         || optOutNsPat != null && optOutNsPat.IsMatch(ns)
                     )
                     {
-                        addOverrideCache(false);
-                        continue;
+                        // add override false and continue outer loop
+                        break;
                     }
                     else
                     {

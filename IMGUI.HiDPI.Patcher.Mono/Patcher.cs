@@ -31,8 +31,6 @@ public static class Patcher
 
     private static Harmony harmony;
 
-    private static readonly HashSet<string> patchedComps = [];
-
     public static void Finish()
     {
         harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
