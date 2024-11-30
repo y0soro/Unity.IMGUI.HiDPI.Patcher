@@ -5,7 +5,7 @@
     <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>
     <Features>strict</Features>
-    <Version>0.0.2</Version>
+    <Version>0.0.3</Version>
     <Company>https://github.com/y0soro/Unity.IMGUI.HiDPI.Patcher</Company>
     <Copyright>MIT LICENSE - Copyright (c) 2024 y0soro</Copyright>
   </PropertyGroup>
