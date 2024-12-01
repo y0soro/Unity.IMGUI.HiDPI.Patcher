@@ -26,6 +26,11 @@ those elements would probably overflow out of the screen.
 
 To address this issue, we hook on `Screen.width` and `Screen.height` to return scale downed screen size by the same factor we used for scaling up UI elements. And such UI component would draw elements in this scale downed region, and when re-scaled up, every element would stays in the same relative screen position just like without scaling but with pixels-per-UI added up.
 
+## Known Issue
+
+-   **Issue**: Mouse inspection is broken in RuntimeUnityEditor as it uses absolute mouse position which this patcher also overrides.
+-   **Workaround**: Add `RuntimeUnityEditor` to `OptOutNsRegex` in config file or mouse inspect on screen resolution 1920x1080 only .
+
 ## Implement HiDPI scaling for your IMGUI application
 
 If you are a plugin author, it should be easy to adapt this method to your `OnGUI` loop.

@@ -25,6 +25,8 @@ public static class Hooks
     private static float FixedApiScale;
     private static float ZoomScale;
 
+    private static bool MousePosOverride;
+
     private static bool AutoOverrideNs;
 
     private static readonly HashSet<Regex> overrideNsPat = [];
@@ -115,6 +117,19 @@ public static class Hooks
 
         FixedApiScale = ClampScale(FixedApiScale);
         ZoomScale = ClampScale(ZoomScale);
+
+        MousePosOverride = Config
+            .Bind(
+                "MouseOverride",
+                "MousePosOverride",
+                true,
+                "Scale down absolute mouse input position, fixes UI window drag-resizing on some plugins.\n"
+                    + "However it also breaks mouse inspection in RuntimeUnityEditor.\n"
+                    + "This is too hacky to handle so I am not going to work around it here.\n"
+                    + "And I believe this should be handled in plugins to not referencing absolute mouse input position for UI drawing.\n"
+                    + "Hence the option is reserved for disabling mouse position overriding once this case has been handled in those plugins."
+            )
+            .Value;
 
         AutoOverrideNs = Config
             .Bind(
@@ -505,7 +520,7 @@ public static class Hooks
     [HarmonyPatch(typeof(Input), nameof(Input.mousePosition), MethodType.Getter)]
     private static void LegacyMousePosition(ref Vector3 __result)
     {
-        if (IsOnGUI)
+        if (MousePosOverride && IsOnGUI)
         {
             var scale = Scale;
             __result.x /= scale;
