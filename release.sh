@@ -3,7 +3,7 @@ set -e
 
 DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 
-dotnet build --configuration Release /p:ContinuousIntegrationBuild=true
+dotnet build --configuration Release -p:ContinuousIntegrationBuild=true -p:PublishTrimmed=false
 
 version=$(sed -n 's/.*<Version>\(.*\)<.*/\1/p' Directory.Build.props | tr -d '\n')
 
@@ -17,5 +17,5 @@ for i in IMGUI*/; do
     install -D "${DIR}/artifacts/bin/${name}/release/"*.dll -t ./BepInEx/patchers
 
     tar --sort=name --owner=root:0 --group=root:0 --mtime='UTC 1970-01-01' \
-        -a -cf "$DIR/artifacts/${name}-v${version}.zip" ./
+        -a -cf "$DIR/artifacts/${name}-v${version}.zip" BepInEx
 done
