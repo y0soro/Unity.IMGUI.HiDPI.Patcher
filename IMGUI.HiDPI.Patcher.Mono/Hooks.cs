@@ -184,7 +184,7 @@ public static class Hooks
             .Bind(
                 "Opt-out",
                 "OptOutNsRegex",
-                "",
+                "^(SVS_CharaFilter|CharaFilterCore)(\\..+)?",
                 "Opt-out scaling for matched namespace, specify namespace of IMGUI MonoBehavior component\n"
                     + "if it has implemented HiDPI scaling like this patcher."
             )
